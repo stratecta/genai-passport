@@ -1,0 +1,11 @@
+{
+ "name":"生成AIパスポート問題集",
+ "short_name":"AIパスポート",
+ "start_url":"./",
+ "scope":"./",
+ "display":"standalone",
+ "background_color":"#eef3f3",
+ "theme_color":"#0d6070",
+ "lang":"ja",
+ "icons":[{"src":"icon-192.png","sizes":"192x192","type":"image/png"},{"src":"icon-512.png","sizes":"512x512","type":"image/png"}]
+}
