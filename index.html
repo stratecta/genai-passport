@@ -306,6 +306,36 @@ function renderNotes(){
     list.appendChild(el)});
   list.querySelectorAll("[data-say]").forEach(b=>b.onclick=()=>ttsStart(+b.dataset.say));
 }
+// ---------- 読み上げ用の読み方辞書 ----------
+const YOMI_PHRASE=[["Attention Is All You Need","アテンション・イズ・オール・ユー・ニード"],["Claude.ai","クロード・ドット・エーアイ"],["Eleven Labs","イレブンラボ"],["ElevenLabs","イレブンラボ"],["Text-to-Speech","テキスト・トゥ・スピーチ"],["chain-of-thought","チェーン・オブ・ソート"],["Flash-Lite","フラッシュライト"],["JSON-RPC","ジェイソン・アールピーシー"],["USB-C","ユーエスビー・シー"],["Wi-Fi","ワイファイ"],["n-gram","エヌグラム"],["Top-p","トップピー"],["Top-P","トップピー"],["Pre-trained","プリトレインド"],["Seq2Seq","シーク・ツー・シーク"],["Word2Vec","ワード・ツー・ベック"],["DALL-E","ダリ"],["Veo3","ベオスリー"],["Veo 3","ベオスリー"],["iPaaS","アイパース"],["Zero-Shot","ゼロショット"],["Few-Shot","フューショット"],["One-Shot","ワンショット"],["Self-Attention","セルフアテンション"],["Image Generation","イメージ・ジェネレーション"],["Code Interpreter","コード・インタープリター"]];
+const YOMI_WORD={AI:"エーアイ",ChatGPT:"チャットジーピーティー",InstructGPT:"インストラクトジーピーティー",OpenAI:"オープンエーアイ",AICore:"エーアイコア",GPTs:"ジーピーティーズ",RAG:"ラグ",GAN:"ガン",BERT:"バート",ALBERT:"アルバート",RoBERTa:"ロベルタ",BART:"バート",JSON:"ジェイソン",MIDI:"ミディ",FAISS:"フェイス",Transformer:"トランスフォーマー",Copilot:"コパイロット",Google:"グーグル",Sora:"ソラ",Gemini:"ジェミニ",Claude:"クロード",Microsoft:"マイクロソフト",Anthropic:"アンソロピック",Sonnet:"ソネット",Opus:"オーパス",Haiku:"ハイク",DeepMind:"ディープマインド",Facebook:"フェイスブック",Meta:"メタ",Amazon:"アマゾン",Bedrock:"ベッドロック",Vertex:"バーテックス",Bing:"ビング",GitHub:"ギットハブ",Android:"アンドロイド",Python:"パイソン",Watson:"ワトソン",Wikipedia:"ウィキペディア",Pinecone:"パインコーン",Weaviate:"ウィービエイト",Chroma:"クロマ",GenSpark:"ジェンスパーク",Manus:"マナス",Skywork:"スカイワーク",Perplexity:"パープレキシティ",Operator:"オペレーター",Codex:"コーデックス",Excel:"エクセル",Word:"ワード",Teams:"チームズ",Graph:"グラフ",Recall:"リコール",Studio:"スタジオ",Artifacts:"アーティファクツ",Patrick:"パトリック",Lewis:"ルイス",Stable:"ステーブル",Diffusion:"ディフュージョン",Midjourney:"ミッドジャーニー",Suno:"スーノ",Udio:"ユーディオ",Runway:"ランウェイ",
+Language:"ランゲージ",Large:"ラージ",Model:"モデル",Models:"モデルズ",model:"モデル",Artificial:"アーティフィシャル",Intelligence:"インテリジェンス",Hallucination:"ハルシネーション",Data:"データ",Generative:"ジェネレーティブ",Generator:"ジェネレーター",Discriminator:"ディスクリミネーター",Adversarial:"アドバーサリアル",Networks:"ネットワークス",Network:"ネットワーク",Chat:"チャット",Interpreter:"インタープリター",Code:"コード",Pro:"プロ",Nano:"ナノ",nano:"ナノ",mini:"ミニ",Mini:"ミニ",pro:"プロ",omni:"オムニ",Constitutional:"コンスティテューショナル",Web:"ウェブ",Retrieval:"リトリーバル",Augmented:"オーグメンテッド",Generation:"ジェネレーション",Image:"イメージ",Dignity:"ディグニティ",Diversity:"ダイバーシティ",Inclusion:"インクルージョン",Sustainability:"サステナビリティ",Temperature:"テンペラチャー",Instruction:"インストラクション",Context:"コンテキスト",Input:"インプット",Output:"アウトプット",Indicator:"インジケーター",Narrow:"ナロー",General:"ジェネラル",Mechanism:"メカニズム",Masked:"マスクド",Next:"ネクスト",Sentence:"センテンス",Prediction:"プレディクション",Lite:"ライト",Reinforcement:"リインフォースメント",Learning:"ラーニング",from:"フロム",Human:"ヒューマン",Feedback:"フィードバック",Alignment:"アライメント",thinking:"シンキング",Thinking:"シンキング",reasoning:"リーズニング",Flash:"フラッシュ",for:"フォー",Security:"セキュリティ",augmentation:"オーグメンテーション",Research:"リサーチ",Dense:"デンス",Passage:"パッセージ",Retriever:"リトリーバー",Chunking:"チャンキング",Tool:"ツール",Use:"ユース",Memory:"メモリー",Voice:"ボイス",Phishing:"フィッシング",Personal:"パーソナル",Protection:"プロテクション",Act:"アクト",Developer:"デベロッパー",Provider:"プロバイダー",Business:"ビジネス",User:"ユーザー",private:"プライベート",Attention:"アテンション",Self:"セルフ",Zero:"ゼロ",Few:"フュー",Shot:"ショット",Agent:"エージェント",Slides:"スライズ",Sheets:"シーツ",Call:"コール",Me:"ミー",Deep:"ディープ",Research:"リサーチ",Search:"サーチ",Labs:"ラボ",Kling:"クリング",Veo:"ベオ",XII:"12",IV:"4",II:"2",III:"3"};
+const LETTER={A:"エー",B:"ビー",C:"シー",D:"ディー",E:"イー",F:"エフ",G:"ジー",H:"エイチ",I:"アイ",J:"ジェー",K:"ケー",L:"エル",M:"エム",N:"エヌ",O:"オー",P:"ピー",Q:"キュー",R:"アール",S:"エス",T:"ティー",U:"ユー",V:"ブイ",W:"ダブリュー",X:"エックス",Y:"ワイ",Z:"ゼット"};
+const EN_NUM=["ゼロ","ワン","ツー","スリー","フォー","ファイブ","シックス","セブン","エイト","ナイン"];
+function enNum(s){ // 4 / 3.5 / 4o / 4.1 をモデル名の読み方に
+  const m=s.match(/^(\d)(?:\.(\d))?([a-z])?$/);if(!m)return null;
+  return EN_NUM[+m[1]]+(m[2]!=null?"ポイント"+EN_NUM[+m[2]]:"")+(m[3]?LETTER[m[3].toUpperCase()]:"")}
+function spell(s){return s.split("").map(ch=>LETTER[ch.toUpperCase()]||ch).join("")}
+function yomiPart(p){
+  if(p in YOMI_WORD)return YOMI_WORD[p];
+  const n=enNum(p);if(n)return n;
+  if(/^[A-Z]{1,6}$/.test(p))return spell(p);            // LLM, MCP, API など
+  if(/^[A-Z]{2,6}s$/.test(p))return spell(p.slice(0,-1))+"ズ";
+  if(/^[A-Z]{1,5}\d{1,2}$/.test(p)){const m=p.match(/^([A-Z]+)(\d+)$/);return spell(m[1])+(m[2].length===1?EN_NUM[+m[2]]:m[2])} // G7
+  if(/^[a-z]\d$/.test(p))return LETTER[p[0].toUpperCase()]+EN_NUM[+p[1]];  // o1, o3
+  if(/^[a-z]$/.test(p))return LETTER[p.toUpperCase()];
+  return null}
+function yomiToken(tok){
+  if(tok in YOMI_WORD)return YOMI_WORD[tok];
+  const whole=yomiPart(tok);if(whole!=null)return whole;
+  if(/[-]/.test(tok)){const ps=tok.split("-");const r=ps.map(p=>yomiPart(p));if(r.every(x=>x!=null))return r.join("")}
+  return tok}
+function yomi(s){
+  YOMI_PHRASE.forEach(([a,b])=>{s=s.split(a).join(b)});
+  return s.replace(/[A-Za-z][A-Za-z0-9]*(?:[.\-][A-Za-z0-9]+)*/g,tok=>{
+    let r=yomiToken(tok);
+    if(r===tok&&tok.includes(".")){r=tok.split(".").map(yomiToken).join("ドット")}
+    return r})}
 // ---------- 読み上げ ----------
 const TTS_OK=("speechSynthesis" in window)&&("SpeechSynthesisUtterance" in window);
 let TT={items:[],idx:0,playing:false,token:0,voice:null};
@@ -317,7 +347,7 @@ function fillVoices(){const sel=$("ttsVoice");if(!sel)return;const vs=jaVoices()
   sel.hidden=!vs.length;TT.voice=null;const cur=ttsVoice();
   sel.innerHTML=vs.map(v=>'<option value="'+esc(v.voiceURI)+'">'+esc(v.name)+'</option>').join("");if(cur)sel.value=cur.voiceURI}
 if(TTS_OK&&speechSynthesis.onvoiceschanged!==undefined)speechSynthesis.onvoiceschanged=fillVoices;
-function ttsClean(s){return String(s).replace(/[／/]/g,"、").replace(/[⇔↔]/g,"と").replace(/→/g,"から").replace(/\s+/g," ")}
+function ttsClean(s){return yomi(String(s)).replace(/[／/]/g,"、").replace(/[⇔↔]/g,"と").replace(/→/g,"から").replace(/\s+/g," ")}
 function ttsBuild(){ // 表示中のノートを読み上げ単位に分ける
   const items=[];
   document.querySelectorAll("#notelist .note").forEach(el=>{
