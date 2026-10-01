@@ -88,6 +88,17 @@ h2{font-size:1.1rem;font-weight:800}
 .term{font-size:.9rem;padding:8px 10px;border-radius:8px;background:var(--accent-soft)}
 .term b{display:block}
 .note.flash{outline:2px solid var(--accent)}
+.tts{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:10px;margin-top:10px;border-bottom:1px solid var(--line);display:grid;gap:6px}
+.tts .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tts .play{border:0;background:var(--accent);color:var(--accent-ink);border-radius:999px;padding:8px 16px;font-weight:700;cursor:pointer;min-height:40px}
+.tts .stop{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 14px;cursor:pointer;min-height:40px}
+.tts .stop:disabled{opacity:.4;cursor:default}
+.tts select{font:inherit;font-size:.85rem;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:6px 8px;margin-left:auto}
+.tts .now{font-size:.78rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:1.2em}
+.note .say{border:1px solid var(--line);background:var(--surface);color:var(--accent);border-radius:999px;padding:3px 10px;font-size:.78rem;cursor:pointer;white-space:nowrap}
+.note .nr{display:flex;gap:8px;align-items:center;flex:none}
+.speaking{background:var(--accent-soft);border-radius:6px;box-shadow:0 0 0 4px var(--accent-soft)}
+.note.reading{border-color:var(--accent)}
 
 /* 問題シート */
 .sheet{position:fixed;inset:0;z-index:20;background:var(--bg);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
@@ -187,6 +198,15 @@ h2{font-size:1.1rem;font-weight:800}
   <h1>要点ノート</h1>
   <p class="sub">セクションごとの要点と重要語句。ページ番号はテキストの該当ページです。</p>
   <div class="nfilter" id="nfilter" role="group" aria-label="章で絞り込む"></div>
+  <div class="tts" id="tts">
+    <div class="row">
+      <button class="play" type="button" id="ttsPlay">▶ 読み上げ</button>
+      <button class="stop" type="button" id="ttsStop" disabled>■ 停止</button>
+      <label class="sub" for="ttsRate" style="margin-left:auto">速度</label>
+      <select id="ttsRate" style="margin-left:0"><option value="0.8">0.8倍</option><option value="1" selected>1.0倍</option><option value="1.2">1.2倍</option><option value="1.5">1.5倍</option><option value="2">2.0倍</option></select>
+    </div>
+    <div class="now" id="ttsNow">表示中のノートを上から順に読み上げます。各ノートの「ここから読む」で途中からも再生できます。</div>
+  </div>
   <div id="notelist"></div>
 </main>
 
@@ -274,22 +294,62 @@ function renderNotes(){
   const f=$("nfilter");f.innerHTML="";
   [["all","すべて"],["1","1章"],["2","2章"],["3","3章"],["4","4章"],["5","5章"]].forEach(([k,l])=>{
     const b=document.createElement("button");b.type="button";b.className="chip";b.id="nf-"+k;b.textContent=l;b.setAttribute("aria-pressed",k===noteFilter);
-    b.onclick=()=>{noteFilter=k;renderNotes();window.scrollTo(0,0)};f.appendChild(b)});
+    b.onclick=()=>{ttsStop();noteFilter=k;renderNotes();window.scrollTo(0,0)};f.appendChild(b)});
   const list=$("notelist");list.innerHTML="";let last="";
   NOTES.forEach((n,i)=>{
     if(noteFilter!=="all"&&String(n.ch)!==noteFilter)return;
     if(n.sec!==last){const h=document.createElement("h2");h.style.marginTop="22px";h.textContent=n.sec+"　"+(SEC[n.sec]||"");list.appendChild(h);last=n.sec}
     const el=document.createElement("article");el.className="note";el.id="note-"+i;
-    el.innerHTML='<div class="nh"><h3>'+esc(n.title)+'</h3><span class="pg">p.'+esc(n.pages)+'</span></div><ul>'+n.points.map(p=>'<li>'+esc(p)+'</li>').join("")+'</ul>'+
+    el.innerHTML='<div class="nh"><h3>'+esc(n.title)+'</h3><span class="nr"><span class="pg">p.'+esc(n.pages)+'</span>'+(TTS_OK?'<button class="say" type="button" data-say="'+i+'">▶ ここから読む</button>':'')+'</span></div><ul>'+n.points.map(p=>'<li>'+esc(p)+'</li>').join("")+'</ul>'+
       (n.terms&&n.terms.length?'<div class="terms">'+n.terms.map(t=>'<div class="term"><b>'+esc(t.t)+'</b>'+esc(t.d)+'</div>').join("")+'</div>':"");
     list.appendChild(el)});
+  list.querySelectorAll("[data-say]").forEach(b=>b.onclick=()=>ttsStart(+b.dataset.say));
 }
+// ---------- 読み上げ ----------
+const TTS_OK=("speechSynthesis" in window)&&("SpeechSynthesisUtterance" in window);
+let TT={items:[],idx:0,playing:false,token:0,voice:null};
+function ttsVoice(){if(TT.voice)return TT.voice;const vs=speechSynthesis.getVoices().filter(v=>/^ja/i.test(v.lang));
+  TT.voice=vs.find(v=>/kyoko|o-ren|otoya|hattori/i.test(v.name)&&!/compact/i.test(v.name))||vs.find(v=>v.localService)||vs[0]||null;return TT.voice}
+if(TTS_OK&&speechSynthesis.onvoiceschanged!==undefined)speechSynthesis.onvoiceschanged=()=>{TT.voice=null};
+function ttsClean(s){return String(s).replace(/[／/]/g,"、").replace(/[⇔↔]/g,"と").replace(/→/g,"から").replace(/\s+/g," ")}
+function ttsBuild(){ // 表示中のノートを読み上げ単位に分ける
+  const items=[];
+  document.querySelectorAll("#notelist .note").forEach(el=>{
+    const n=NOTES[+el.id.slice(5)];
+    items.push({el:el.querySelector("h3"),note:el,label:n.sec+" "+n.title,text:n.sec.replace("-","の")+"、"+n.title+"。"});
+    el.querySelectorAll("li").forEach(li=>items.push({el:li,note:el,label:n.sec+" "+n.title,text:li.textContent}));
+    el.querySelectorAll(".term").forEach(tm=>{const b=tm.querySelector("b").textContent;items.push({el:tm,note:el,label:n.sec+" "+n.title,text:"用語、"+b+"。"+tm.textContent.slice(b.length)})});
+  });
+  return items;
+}
+function ttsMark(it){document.querySelectorAll(".speaking").forEach(e=>e.classList.remove("speaking"));document.querySelectorAll(".note.reading").forEach(e=>e.classList.remove("reading"));
+  if(!it)return;it.el.classList.add("speaking");it.note.classList.add("reading");
+  const r=it.el.getBoundingClientRect();if(r.top<120||r.bottom>window.innerHeight-90)it.el.scrollIntoView({block:"center",behavior:"smooth"})}
+function ttsUI(){$("ttsPlay").textContent=TT.playing?"⏸ 一時停止":(TT.items.length&&TT.idx>0?"▶ 続きから":"▶ 読み上げ");$("ttsStop").disabled=!TT.playing&&!(TT.items.length&&TT.idx>0);
+  const it=TT.items[TT.idx];$("ttsNow").textContent=TT.items.length&&it?(TT.playing?"再生中：":"一時停止中：")+it.label+"（"+(TT.idx+1)+"/"+TT.items.length+"）":"表示中のノートを上から順に読み上げます。各ノートの「ここから読む」で途中からも再生できます。"}
+function ttsSpeak(){
+  const tk=++TT.token;speechSynthesis.cancel();
+  const it=TT.items[TT.idx];if(!it){ttsStop();$("ttsNow").textContent="最後まで読み上げました。";return}
+  ttsMark(it);ttsUI();
+  const u=new SpeechSynthesisUtterance(ttsClean(it.text));u.lang="ja-JP";const v=ttsVoice();if(v)u.voice=v;u.rate=+$("ttsRate").value||1;
+  u.onend=()=>{if(tk!==TT.token||!TT.playing)return;TT.idx++;ttsSpeak()};
+  u.onerror=e=>{if(tk!==TT.token||!TT.playing)return;if(e.error==="interrupted"||e.error==="canceled")return;TT.idx++;ttsSpeak()};
+  setTimeout(()=>{if(tk===TT.token)speechSynthesis.speak(u)},60);
+}
+function ttsStart(noteIdx){
+  if(!TTS_OK)return;TT.items=ttsBuild();
+  TT.idx=noteIdx==null?0:Math.max(0,TT.items.findIndex(it=>it.note.id==="note-"+noteIdx));
+  TT.playing=true;ttsSpeak();
+}
+function ttsPause(){TT.playing=false;TT.token++;speechSynthesis.cancel();ttsUI()}
+function ttsStop(){TT.playing=false;TT.token++;if(TTS_OK)speechSynthesis.cancel();TT.items=[];TT.idx=0;ttsMark(null);if($("ttsPlay"))ttsUI()}
 function noteFor(q){ // 同じセクションで、ページ範囲が問題のページを含むノート
   const cands=NOTES.map((n,i)=>[n,i]).filter(([n])=>n.sec===q.sec);
   const hit=cands.find(([n])=>{const m=String(n.pages).match(/(\d+)\D*(\d+)?/);if(!m)return false;const a=+m[1],b=+(m[2]||m[1]);return q.page>=a&&q.page<=b});
   return (hit||cands[0]||[null,-1])[1];
 }
 function showTab(t){
+  if(TTS_OK&&t!=="notes")ttsStop();
   $("home").hidden=t!=="home";$("notes").hidden=t!=="notes";$("gloss").hidden=t!=="gloss";
   $("tabHome").setAttribute("aria-selected",t==="home");$("tabNotes").setAttribute("aria-selected",t==="notes");$("tabGloss").setAttribute("aria-selected",t==="gloss");
   if(t==="notes")renderNotes();else if(t==="gloss")renderGloss();else renderHome();
@@ -343,7 +403,7 @@ function openNote(i){
 
 // ---------- 出題 ----------
 let S=null; // セッション
-function startPractice(ids,label){S={mode:"practice",ids:ids.slice(),label,pos:0,answered:null,ok:0};openSheet();drawQ()}
+function startPractice(ids,label){if(TTS_OK)ttsStop();S={mode:"practice",ids:ids.slice(),label,pos:0,answered:null,ok:0};openSheet();drawQ()}
 function startMock(){const ids=shuffle(Q.map((q,i)=>i)).slice(0,60);
   S={mode:"mock",ids,label:"模擬試験",pos:0,picks:{},end:Date.now()+60*60*1000};openSheet();tick();S.t=setInterval(tick,1000);drawQ()}
 function openSheet(){$("sheet").hidden=false;document.body.style.overflow="hidden"}
@@ -429,6 +489,12 @@ $("qClose").onclick=()=>{if(S&&S.mode==="mock"&&!confirmClose){confirmClose=true
 let confirmClose=false;
 $("tabHome").onclick=()=>{showTab("home");window.scrollTo(0,0)};
 $("tabNotes").onclick=()=>{showTab("notes");window.scrollTo(0,0)};
+if(TTS_OK){
+  try{const r=localStorage.getItem("gaip-rate");if(r)$("ttsRate").value=r}catch(e){}
+  $("ttsPlay").onclick=()=>{if(TT.playing)ttsPause();else if(TT.items.length&&TT.idx>0){TT.playing=true;ttsSpeak()}else ttsStart(null)};
+  $("ttsStop").onclick=ttsStop;
+  $("ttsRate").onchange=()=>{try{localStorage.setItem("gaip-rate",$("ttsRate").value)}catch(e){}if(TT.playing)ttsSpeak()};
+}else{$("tts").hidden=true}
 $("tabGloss").onclick=()=>{showTab("gloss");window.scrollTo(0,0)};
 let gT;$("gq").addEventListener("input",()=>{clearTimeout(gT);gT=setTimeout(renderGloss,150)});
 $("resetBtn").onclick=()=>{$("resetConfirm").hidden=false};
