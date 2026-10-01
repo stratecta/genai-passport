@@ -1,5 +1,5 @@
 // 生成AIパスポート問題集：オフライン用キャッシュ
-const CACHE="gaip-v5";
+const CACHE="gaip-v6";
 const AUDIO="gaip-audio"; // 音声ファイル（バージョン更新でも消さない）
 const CORE=["./","index.html","manifest.webmanifest","apple-touch-icon.png","icon-192.png","icon-512.png"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
@@ -16,7 +16,7 @@ async function rangeResponse(cached,rangeHeader){
   return new Response(buf.slice(start,end+1),{status:206,headers:{"Content-Type":"audio/mpeg","Content-Length":String(end-start+1),"Content-Range":"bytes "+start+"-"+end+"/"+size,"Accept-Ranges":"bytes"}});
 }
 async function handleAudio(req){
-  const url=new URL(req.url);const key=url.pathname.slice(url.pathname.lastIndexOf("/audio/")+1); // "audio/chN.mp3"
+  const url=new URL(req.url);const key=url.pathname.replace(/^.*\/(audio|listen)\//,"$1/"); // "audio/chN.mp3" / "listen/qa1.mp3"
   const c=await caches.open(AUDIO);
   const hit=await c.match(key);
   if(hit)return rangeResponse(hit,req.headers.get("range"));
@@ -30,7 +30,7 @@ self.addEventListener("fetch",e=>{
   if(u.hostname.endsWith("googleapis.com")||u.hostname.endsWith("gstatic.com")){
     e.respondWith(caches.open(CACHE).then(c=>c.match(r).then(hit=>hit||fetch(r).then(res=>{c.put(r,res.clone());return res}).catch(()=>hit))));return}
   if(u.origin!==location.origin)return;
-  if(u.pathname.includes("/audio/")&&u.pathname.endsWith(".mp3")){e.respondWith(handleAudio(r));return}
+  if((u.pathname.includes("/audio/")||u.pathname.includes("/listen/"))&&u.pathname.endsWith(".mp3")){e.respondWith(handleAudio(r));return}
   e.respondWith(fetch(r).then(res=>{const cp=res.clone();caches.open(CACHE).then(c=>c.put(r,cp));return res})
     .catch(()=>caches.match(r).then(h=>h||caches.match("index.html"))));
 });
