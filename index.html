@@ -350,7 +350,7 @@ function savedVoice(){try{return localStorage.getItem("gaip-voice")||""}catch(e)
 function isAudioMode(){const v=$("ttsVoice")?$("ttsVoice").value:"";return !!AUD&&(v==="__audio"||!TTS_OK||!v)}
 function fillVoices(){const sel=$("ttsVoice");if(!sel)return;const vs=TTS_OK?jaVoices().sort((a,b)=>voiceRank(a)-voiceRank(b)||a.name.localeCompare(b.name)):[];
   TT.voice=null;const sv=savedVoice();
-  sel.innerHTML=(AUD?'<option value="__audio">録音音声（ロック中も再生）</option>':'')+vs.map(v=>'<option value="'+esc(v.voiceURI)+'">iPhone：'+esc(v.name)+'</option>').join("");
+  sel.innerHTML=(AUD?'<option value="__audio">録音音声（ロック中も再生）</option>':'')+vs.map(v=>'<option value="'+esc(v.voiceURI)+'">端末の声：'+esc(v.name)+'</option>').join("");
   sel.hidden=!sel.options.length;
   if(sv&&[...sel.options].some(o=>o.value===sv))sel.value=sv;else if(AUD)sel.value="__audio";else{const c=ttsVoice();if(c)sel.value=c.voiceURI}}
 if(TTS_OK&&speechSynthesis.onvoiceschanged!==undefined)speechSynthesis.onvoiceschanged=fillVoices;
