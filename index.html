@@ -202,7 +202,8 @@ h2{font-size:1.1rem;font-weight:800}
     <div class="row">
       <button class="play" type="button" id="ttsPlay">▶ 読み上げ</button>
       <button class="stop" type="button" id="ttsStop" disabled>■ 停止</button>
-      <label class="sub" for="ttsRate" style="margin-left:auto">速度</label>
+      <select id="ttsVoice" aria-label="声" style="margin-left:auto;max-width:9.5em"></select>
+      <label class="sub" for="ttsRate">速度</label>
       <select id="ttsRate" style="margin-left:0"><option value="0.8">0.8倍</option><option value="1" selected>1.0倍</option><option value="1.2">1.2倍</option><option value="1.5">1.5倍</option><option value="2">2.0倍</option></select>
     </div>
     <div class="now" id="ttsNow">表示中のノートを上から順に読み上げます。各ノートの「ここから読む」で途中からも再生できます。</div>
@@ -308,9 +309,14 @@ function renderNotes(){
 // ---------- 読み上げ ----------
 const TTS_OK=("speechSynthesis" in window)&&("SpeechSynthesisUtterance" in window);
 let TT={items:[],idx:0,playing:false,token:0,voice:null};
-function ttsVoice(){if(TT.voice)return TT.voice;const vs=speechSynthesis.getVoices().filter(v=>/^ja/i.test(v.lang));
-  TT.voice=vs.find(v=>/kyoko|o-ren|otoya|hattori/i.test(v.name)&&!/compact/i.test(v.name))||vs.find(v=>v.localService)||vs[0]||null;return TT.voice}
-if(TTS_OK&&speechSynthesis.onvoiceschanged!==undefined)speechSynthesis.onvoiceschanged=()=>{TT.voice=null};
+function jaVoices(){return speechSynthesis.getVoices().filter(v=>/^ja/i.test(v.lang))}
+function voiceRank(v){const n=v.name.toLowerCase();return (/premium|プレミアム/.test(n)?0:/enhanced|拡張|siri/.test(n)?1:/compact|コンパクト/.test(n)?3:2)}
+function ttsVoice(){if(TT.voice)return TT.voice;const vs=jaVoices();let saved="";try{saved=localStorage.getItem("gaip-voice")||""}catch(e){}
+  TT.voice=vs.find(v=>v.voiceURI===saved)||vs.slice().sort((a,b)=>voiceRank(a)-voiceRank(b))[0]||null;return TT.voice}
+function fillVoices(){const sel=$("ttsVoice");if(!sel)return;const vs=jaVoices().sort((a,b)=>voiceRank(a)-voiceRank(b)||a.name.localeCompare(b.name));
+  sel.hidden=!vs.length;TT.voice=null;const cur=ttsVoice();
+  sel.innerHTML=vs.map(v=>'<option value="'+esc(v.voiceURI)+'">'+esc(v.name)+'</option>').join("");if(cur)sel.value=cur.voiceURI}
+if(TTS_OK&&speechSynthesis.onvoiceschanged!==undefined)speechSynthesis.onvoiceschanged=fillVoices;
 function ttsClean(s){return String(s).replace(/[／/]/g,"、").replace(/[⇔↔]/g,"と").replace(/→/g,"から").replace(/\s+/g," ")}
 function ttsBuild(){ // 表示中のノートを読み上げ単位に分ける
   const items=[];
@@ -493,6 +499,8 @@ if(TTS_OK){
   try{const r=localStorage.getItem("gaip-rate");if(r)$("ttsRate").value=r}catch(e){}
   $("ttsPlay").onclick=()=>{if(TT.playing)ttsPause();else if(TT.items.length&&TT.idx>0){TT.playing=true;ttsSpeak()}else ttsStart(null)};
   $("ttsStop").onclick=ttsStop;
+  fillVoices();setTimeout(fillVoices,800);
+  $("ttsVoice").onchange=()=>{try{localStorage.setItem("gaip-voice",$("ttsVoice").value)}catch(e){}TT.voice=null;if(TT.playing)ttsSpeak()};
   $("ttsRate").onchange=()=>{try{localStorage.setItem("gaip-rate",$("ttsRate").value)}catch(e){}if(TT.playing)ttsSpeak()};
 }else{$("tts").hidden=true}
 $("tabGloss").onclick=()=>{showTab("gloss");window.scrollTo(0,0)};
