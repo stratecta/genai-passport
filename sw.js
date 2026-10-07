@@ -1,5 +1,5 @@
 // 生成AIパスポート問題集：オフライン用キャッシュ
-const CACHE="gaip-v8";
+const CACHE="gaip-v9";
 const AUDIO="gaip-audio"; // 音声ファイル（バージョン更新でも消さない）
 const CORE=["./","index.html","manifest.webmanifest","apple-touch-icon.png","icon-192.png","icon-512.png"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
